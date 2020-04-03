@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+	{% load static %}
+	<link rel="stylesheet" type="text/css" href="{% static 'wall_style.css' %}">
+	<script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+	<script>
+		$(document).ready(function() {
+			$('.post').each(function(index, element) {
+				if ($(element).attr('class') != "post {{request.session.user_id}}") {
+					$(element).children().children().children(".delete").css('display', 'none');
+				}
+			});
+			$('.comment').each(function(index, element) {
+				if ($(element).attr('class') != "comment {{request.session.user_id}}") {
+					$(element).children().children().children(".delete").css('display', 'none');
+				}
+			});
+			// For deleting comments and posts when you click the x next to it on the wall  
+			$('.delete').click(function() {
+				// For of the button clicked is for a message
+				if ($(this).parent().parent().parent().attr('class').includes('post')) {
+					var post_id = $(this).parent().siblings().attr('id');
+					$.ajax({
+					url: 'ajax/delete_post',
+					data: {
+						'post_id': post_id
+					},
+					dataType: 'json',
+					success: function (data) {
+						if (data['deleted']) {
+							$('#' + post_id + ".post").remove();
+						}
+					}
+				});
+				// For if the button clicked is for a comment
+				} else if (($(this).parent().parent().parent().attr('class').includes('comment'))) {
+					var comment_id = $(this).parent().siblings().attr('id');
+					$.ajax({
+					url: 'ajax/delete_post',
+					data: {
+						'comment_id': comment_id
+					},
+					dataType: 'json',
+					success: function (data) {
+						if (data['deleted']) {
+							$('#' + comment_id + '.comment').remove();
+						}
+					}
+				});
+				
+				}
+			});
+		});
+
+	</script>
+
+</head>
+<body>
+	<div id="header">
+		<h2>CodingDojo Wall</h2>
+		<div id="greeting">
+			<p>Welcome {{request.session.first_name}}</p>
+			<a href="/logout">log off</a>
+		</div>
+	</div>
+	<div id="content">
+		<div id="new_content">
+			<form action="post_message" method="post">
+				{% csrf_token %}
+				<label for="new_message">Post a message</label>
+				<input type="text" name="new_message">
+				<button class="btn btn-primary btn-sm" type="submit">Post a message</button>
+			</form>
+		</div>
+
+		<div id="all_messages">
+			{% for post in posts %}
+			<div class="post {{post.user.id}}" id="{{post.id}}">
+				<div class="text">
+					<h6>
+						
+						{{post.user.first_name}} {{post.user.last_name}} - {{post.created_at}} 
+						<a class="btn-sm btn-outline-danger delete">x</a>
+					</h6>
+
+					<p id="{{post.id}}">{{post.message}}</p>
+				</div>
+				
+				{% for comment in post.comments.all %}
+					<div class="comment {{comment.user_id}}" id="{{comment.id}}">
+						<div class="text">
+							<h6>
+								{{comment.user.first_name}} {{comment.user.last_name}} - {{comment.created_at}}
+								<a class="btn-sm btn-outline-danger delete">x</a>
+							</h6>
+							<p id="{{comment.id}}">{{comment.comment}}</p>
+						</div>		
+					</div>
+				{% endfor %}
+
+				<div id="new_content">
+					<form action="post_comment" method="post">
+						{% csrf_token %}
+						<label for="new_comment">Post a comment</label>
+						<input type="text" name="new_comment">
+						<input type="hidden" name="message_id" value="{{post.id}}">
+						<button class="btn btn-success btn-sm" type="submit">Post a comment</button>
+					</form>
+				</div>
+			</div>
+			{% endfor %}
+		</div>
+	</div>
+</body>
+</html>
